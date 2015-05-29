@@ -1,0 +1,45 @@
+body {
+	background: gray;
+}
+
+table {
+	box-shadow: 0px 0px 0px 10px #835930;
+	display: inline-block;
+}
+
+td.cell, div.piece {
+	width: 80px;
+	height: 80px;
+}
+td.cell.white {
+	background: white;
+}
+td.cell.black {
+	background: black;
+}
+td.selected {
+	box-shadow: 0px 0px 0px 2px yellow;
+}
+td.option {
+	box-shadow: 0px 0px 0px 2px yellow;
+}
+
+div.man.player1 {
+	background: #000 url('./img/man1.png') no-repeat;	
+}
+div.man.player2 {
+	background: #000 url('./img/man2.png') no-repeat;
+}
+div.king.player1 {
+	background: #000 url('./img/king1.png') no-repeat;	
+}
+div.king.player2 {
+	background: #000 url('./img/king2.png') no-repeat;
+}
+div.piece.man, div.piece.king {
+	background-size: cover;
+}
+
+div.score {
+	display: inline-block;
+}

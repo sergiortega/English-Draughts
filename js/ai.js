@@ -1,6 +1,8 @@
 var player1Turn = true,
 	onlyAllowedMove = false,
-	onlyAllowedPiece = null;
+	onlyAllowedPiece = null,
+	player1Pieces = [],
+	player2Pieces = [];
 
 //this function will generate a 8x8 board alternating black and white squares and the pieces on it
 function generateBoard () {
@@ -18,8 +20,18 @@ function generateBoard () {
 			} else { //set a black cell
 				if (i < 3) { //if first 3 lines, set player2 pieces on black spaces
 					cell = 'black"><div class="piece man player2" />';
+					player2Pieces.push({
+						type: 'man',
+						line: i,
+						cell: j
+					});
 				} else if (i >= 5) { //if last 3 lines, set player1 pieces on black spaces
 					cell = 'black"><div class="piece man player1"/>';
+					player1Pieces.push({
+						type: 'man',
+						line: i,
+						cell: j
+					});
 				} else { //middle of the board = no players
 					cell = 'black">';
 				}
@@ -52,7 +64,6 @@ function endTurn () {
 	player1Turn = !player1Turn;
 	onlyAllowedMove = false;
 	onlyAllowedPiece = null;
-	checkWinner();
 }
 
 function upgradeToKing (lineNo) {
@@ -60,39 +71,32 @@ function upgradeToKing (lineNo) {
 }
 
 //move the piece to the selected cell
-function movePiece (newCell, pieceCell, piece, pieceToEat) {
+function movePiece (newCell, pieceCell, piece, upgradeToKing, pieceToEat) {
 	//create a copy of the element to avoid event listeners mixed up
 	var new_el = newCell.cloneNode(true), //true = a deep copy
-		//check if the move is to an end of the board where the piece will become a king
-		becomesAking = upgradeToKing(parseInt(newCell.getAttribute('data-line'))) && !piece.element.classList.contains('king');
-
-	//replace the cell content with the clone to avoid previous listeners being triggered
+		becomesAking = upgradeToKing && !piece.element.classList.contains('king');
 	newCell.parentNode.replaceChild(new_el, newCell);
-	//create a one-time event
+	// create a one-time event
     new_el.addEventListener('click', function(e) {
-        //remove event
+        // remove event
         e.target.removeEventListener(e.type, arguments.callee);
-        //Handler:
+        // call handler
         //if the cell is not an option then return and no action
         if (!this.classList.contains('option')) return;
-        //remove the piece from the firs cell
+        //else, check if the piece needs to be 'king', move it and end turn
        	pieceCell.removeChild(piece.element);
-       	//check if there's a piece to eat and remove it if needed
        	if (pieceToEat) {
         	pieceToEat.innerHTML = '';
     	}
-    	//check if the piece becomes a king
         if (becomesAking) {
         	piece.element.classList.remove('man');
 			piece.element.classList.add('king');
         }
-        //finally put the piece in the new cell
         this.appendChild(piece.element);
-        //if the piece moved to an empty space without eating an enemy or became a king, the turn ends
         if (!pieceToEat || becomesAking) {
        		endTurn();
-       	} else { //the piece ate an enemy so the turn continues. Evaluate the same piece again
-       		//update cell and line values and trigger the click action
+       	} else { //carry on with turn and evaluate that single piece again
+       		//update cell and line values
        		piece.line = newCell.getAttribute('data-line');
        		piece.cell = newCell.getAttribute('data-cell');
        		onlyAllowedMove = true;
@@ -123,14 +127,12 @@ function testing (piece, optionLine, optionCell) {
 						pieceElement.classList.add('selected');
 					}
 					newOptionElement.classList.add('option');
-					movePiece(newOptionElement, pieceElement, piece, optionElement);
+					movePiece(newOptionElement, pieceElement, piece, upgradeToKing(newOptLine), optionElement);
 				} else { //give up, not possible move
 					return false;
 				}
-				return true;
 			}
-			return false;
-		} else { //no child so allow move
+		} else { //no child there so allow move
 			if (onlyAllowedMove) {
 				return false;
 			}
@@ -138,11 +140,10 @@ function testing (piece, optionLine, optionCell) {
 				pieceElement.classList.add('selected');
 			}
 			optionElement.classList.add('option');
-			movePiece(optionElement, pieceElement, piece, false); //no piece to eat
+			movePiece(optionElement, pieceElement, piece, upgradeToKing(optionLine), false); //no piece to eat
 		}
-		return true;
 	}
-	return false;
+	return true;
 }
 
 function possibleMoves (piece) {
@@ -162,12 +163,16 @@ function possibleMoves (piece) {
 		forwardLine = piece.line - 1;
 		if (piece.type === 'king') { //king
 			backwardLine = piece.line + 1;
+		} else {
+			upgradeToKing(forwardLine);//Does it needs to become a 'king'?
 		}
 	}
 	if (piece.player === 'player2') { //player2 moves forward, from top to bottom
 		forwardLine = piece.line + 1;
 		if (piece.type === 'king') { //king
 			backwardLine = piece.line - 1;
+		} else {
+			upgradeToKing(forwardLine);//Does it needs to become a 'king'?
 		}
 	}
 
@@ -199,10 +204,19 @@ function pieceOptions () {
 
 	var piece = this,
 		parent = piece.parentNode,
-		pieceObj = {
-			type: piece.classList.contains('king') ? 'king' : 'man',
-			line: parseInt(parent.getAttribute('data-line')),
-			cell: parseInt(parent.getAttribute('data-cell')),
+		line = parseInt(parent.getAttribute('data-line')),
+		cell = parseInt(parent.getAttribute('data-cell')),
+		cellOpt1 = cell + 1, //possible cells to move to (diagonally)
+		cellOpt2 = cell - 1,
+		lineOpt1 = line + 1, //possible lines to move to (back and forward, will depend on piece type)
+		lineOpt2 = line - 1,
+		isKing = piece.classList.contains('king'),
+		upgradeToKing = false; //determines wether the 'man' becomes a 'king' or not
+
+	var pieceObj = {
+			type: isKing ? 'king' : 'man',
+			line: line,
+			cell: cell,
 			player: this.classList.contains('player1') ? 'player1' : 'player2',
 			element: this
 		};
@@ -210,18 +224,60 @@ function pieceOptions () {
 	possibleMoves(pieceObj);
 }
 
-//Check which player won (the other player pieces are all gone) and
-//remove the 'piece' event listener so no more clicks are allowed
-function checkWinner () {
-	var player1Pieces = document.getElementsByClassName('player1'),
-		player2Pieces = document.getElementsByClassName('player2');
+function checkGameOver (player) {
+	console.log(player + " is a LOOOOSER!");
+}
 
-	if (player1Pieces.length === 0) {
-		alert("GAME OVER. Player 2 (Red) won.");
-		removeEventListenerByClass('piece', 'click', pieceOptions);
-	} else if (player2Pieces.length === 0) {
-		alert("GAME OVER. Player 1 (White) won.");
-		removeEventListenerByClass('piece', 'click', pieceOptions);
+function evaluatePlayerOptions () {
+	if(player1Turn){
+		player1Pieces.forEach(function(item, i){
+			//evaluate the 2 forward options
+			var forwardCellRight = player1Pieces.cell + 1,
+				forwardCellLeft = player1Pieces.cell -1,
+				forwardLine = -1,
+				backwardLine = -1,
+				possibleMove1 = false,
+				possibleMove2 = false,
+				possibleMove3 = false,
+				possibleMove4 = false;
+
+			if (player1Pieces.player === 'player1') { //player1 turn, player1Pieces moves forward from bottom to top
+				forwardLine = player1Pieces.line - 1;
+				if (player1Pieces.type === 'king') { //king
+					backwardLine = player1Pieces.line + 1;
+				} else {
+					upgradeToKing(forwardLine);//Does it needs to become a 'king'?
+				}
+			}
+			if (player1Pieces.player === 'player2') { //player2 moves forward, from top to bottom
+				forwardLine = player1Pieces.line + 1;
+				if (player1Pieces.type === 'king') { //king
+					backwardLine = player1Pieces.line - 1;
+				} else {
+					upgradeToKing(forwardLine);//Does it needs to become a 'king'?
+				}
+			}
+
+			if (forwardLine > -1) {
+				possibleMove1 = testing(player1Pieces, forwardLine, forwardCellLeft);
+				possibleMove2 = testing(player1Pieces, forwardLine, forwardCellRight);
+			}
+
+			if (backwardLine > -1) {
+				possibleMove3 = testing(player1Pieces, backwardLine, forwardCellLeft);
+				possibleMove4 = testing(player1Pieces, backwardLine, forwardCellRight);
+			}
+
+			var possibleMove = possibleMove1 || possibleMove2 || possibleMove3 || possibleMove4;
+
+			if (player1Pieces[i].type === 'king') { //evaluate the 2 backwards options
+
+			}
+		});
+	} else {
+		player2Pieces.forEach(function(item, i){
+			console.log(player2Pieces[i]);
+		});
 	}
 }
 

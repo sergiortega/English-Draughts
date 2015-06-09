@@ -6,8 +6,13 @@
 	<link rel="stylesheet" type="text/css" href="css/style.css"/>
 	<link rel="icon" type="image/png" href="css/img/man2.png"/>
 	<script type='text/javascript' src='js/utils.js'></script>
-	<script type='text/javascript' src='js/ai.js'></script>
+	<script type='text/javascript' src='js/app.js'></script>
 </head>
-<body onload="mainFunction()">
+<body>
+	<h1>English Draughts</h1>
+	<div id="userSelection">
+		<button class="vsPlayer" onclick="playerVSplayer()"><img src="css/img/vsPlayer.png"/><img src="css/img/vsPlayer.png"/><br>Player1 VS Player2</button>
+		<button class="vsComputer" onclick="playerVScomputer()"><img src="css/img/vsPlayer.png"/><img src="css/img/vsComputer.png"/><br>Player1 VS Computer</button>
+	</div>
 </body>
 </html>
